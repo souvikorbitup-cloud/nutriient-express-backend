@@ -54,10 +54,11 @@ export const registerUser = asyncHandler(async (req, res) => {
   if (!user) {
     throw new ApiError(500, "Something went wrong while registerimg the user");
   }
-  // send cookie
+  // send cookie (allow cross-site cookies in production)
   const options = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
   };
 
   // generateToken
@@ -84,10 +85,11 @@ export const loginUser = asyncHandler(async (req, res) => {
   const user = await User.findOne({ mobile });
   if (!user) throw new ApiError(400, "User not found");
 
-  // send cookie
+  // send cookie (allow cross-site cookies in production)
   const options = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
   };
 
   // generateToken
@@ -109,6 +111,7 @@ export const logoutUser = asyncHandler(async (req, res) => {
   const options = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
   };
 
   return res
