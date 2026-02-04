@@ -245,7 +245,8 @@ export const getReportById = asyncHandler(async (req, res) => {
 
     // HIZ
     if (opt.hizTag && opt.hizValue) {
-      if (hizMap[opt.hizTag]) hizMap[opt.hizTag].add(opt.hizValue);
+      if (hizMap[opt.hizTag])
+        hizMap[opt.hizTag].add({ value: opt.hizValue, score: score });
     }
   };
 
@@ -338,12 +339,14 @@ export const getReportById = asyncHandler(async (req, res) => {
         low: roundedMaintenance - 600,
         high: roundedMaintenance - 500,
         unit: "kcal/day",
+        text: "Your Ideal Fat Loss Target:"
       };
     } else {
       idealTarget = {
         low: roundedMaintenance - 100,
         high: roundedMaintenance,
         unit: "kcal/day",
+        text: "Your Ideal Diet Target:"
       };
     }
   }
@@ -356,14 +359,23 @@ export const getReportById = asyncHandler(async (req, res) => {
     chartVal = 3600;
   }
   const chartMaintenanceCalories = await Chart.findOne({ value: chartVal });
-  chartMaintenanceCalories.image = makeAbsoluteUrl(chartMaintenanceCalories.image)
+  chartMaintenanceCalories.image = makeAbsoluteUrl(
+    chartMaintenanceCalories.image,
+  );
 
+  function getMaxScoreValue(arr) {
+    if (!arr.length) return null;
+
+    return arr.reduce((max, current) =>
+      current.score > max.score ? current : max,
+    ).value;
+  }
 
   // HIZ values - convert sets to strings
   const hiz = {};
   for (const key of Object.keys(hizMap)) {
     const arr = Array.from(hizMap[key]);
-    hiz[key] = arr.length ? arr.join(", ") : null;
+    hiz[key] = getMaxScoreValue(arr);
   }
 
   const images = [
