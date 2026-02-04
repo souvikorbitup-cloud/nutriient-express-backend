@@ -100,6 +100,10 @@ export const registerManager = asyncHandler(async (req, res) => {
   );
 }); // ✅
 
+export const getCurrentAdmin = asyncHandler(async (req, res) => {
+  return res.status(200).json(new ApiResponse(200, req.user));
+});
+
 export const getAllManagers = asyncHandler(async (req, res) => {
   const managers = await Admin.find({ role: "manager" })
     .select("-password -__v")

@@ -5,6 +5,7 @@ import {
   getAdminDashboardStats,
   getAllManagers,
   getAllUsers,
+  getCurrentAdmin,
   loginAdmin,
   logoutAdmin,
   registerManager,
@@ -26,6 +27,10 @@ router.route("/login").post(loginAdmin);
 router
   .route("/register")
   .post(verifyJWT, authorizeRole("admin"), registerManager);
+
+router
+  .route("/current-admin")
+  .get(verifyJWT, authorizeRole("admin", "manager"), getCurrentAdmin);
 
 router
   .route("/all-managars")
