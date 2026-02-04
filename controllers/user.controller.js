@@ -59,6 +59,7 @@ export const registerUser = asyncHandler(async (req, res) => {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 30 * 24 * 60 * 60 * 1000,
   };
 
   // generateToken
@@ -90,6 +91,7 @@ export const loginUser = asyncHandler(async (req, res) => {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 30 * 24 * 60 * 60 * 1000,
   };
 
   // generateToken
@@ -157,7 +159,7 @@ export const updateAccountDetails = asyncHandler(async (req, res) => {
   if (age !== undefined) {
     updateData.age = age;
   }
-  
+
   if (email !== undefined) {
     updateData.email = email.trim();
   }

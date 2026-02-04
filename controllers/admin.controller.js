@@ -40,7 +40,9 @@ export const loginAdmin = asyncHandler(async (req, res) => {
   // Cookie options
   const options = {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 30 * 24 * 60 * 60 * 1000,
   };
 
   // Remove password from response
