@@ -66,11 +66,35 @@ export const createContact = asyncHandler(async (req, res) => {
 });
 
 export const getAllContacts = asyncHandler(async (req, res) => {
-  const contacts = await Contact.find().sort({ createdAt: -1 });
+  const page = Math.max(Number(req.query.page) || 1, 1);
+  const limit = Math.min(Number(req.query.limit) || 20, 100);
+  const skip = (page - 1) * limit;
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, contacts, "Contacts fetched successfully"));
+  const [contacts, totalContacts] = await Promise.all([
+    Contact.find().sort({ createdAt: -1 }).skip(skip).limit(limit),
+
+    Contact.countDocuments(),
+  ]);
+
+  const totalPages = Math.ceil(totalContacts / limit);
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        contacts,
+        pagination: {
+          totalContacts,
+          totalPages,
+          currentPage: page,
+          limit,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1,
+        },
+      },
+      "Contacts fetched successfully",
+    ),
+  );
 });
 
 export const getContactById = asyncHandler(async (req, res) => {
