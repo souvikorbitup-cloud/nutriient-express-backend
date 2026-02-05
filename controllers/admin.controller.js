@@ -30,7 +30,7 @@ export const loginAdmin = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Invalid credentials");
   }
 
-  if(admin?.avatar){
+  if (admin?.avatar) {
     admin.avatar = makeAbsoluteUrl(admin.avatar);
   }
 
@@ -101,6 +101,8 @@ export const registerManager = asyncHandler(async (req, res) => {
 }); // ✅
 
 export const getCurrentAdmin = asyncHandler(async (req, res) => {
+  if (req.user?.avatar) req.user.avatar = makeAbsoluteUrl(req.user.avatar);
+
   return res.status(200).json(new ApiResponse(200, req.user));
 });
 
