@@ -15,8 +15,8 @@ const router = Router();
 
 /* Public */
 router.get("/", getAllProducts);
-router.get("/:productId", getProductById);
 router.get("/category/:categoryName", getProductsByCategoryName);
+router.get("/:productId", getProductById);
 
 /* Admin / Manager */
 router.post(
