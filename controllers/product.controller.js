@@ -105,7 +105,7 @@ export const updateProduct = asyncHandler(async (req, res) => {
     "isRecommendation",
   ];
 
-  /* ---- Validate & assign body fields ---- */
+  /* ---------- Validate & assign body fields ---------- */
   allowedFields.forEach((field) => {
     if (req.body[field] !== undefined) {
       if (
@@ -115,7 +115,7 @@ export const updateProduct = asyncHandler(async (req, res) => {
         throw new ApiError(400, `${field} cannot be empty`);
       }
 
-      if (field === "stock" && req.body.stock < 0) {
+      if (field === "stock" && Number(req.body.stock) < 0) {
         throw new ApiError(400, "Stock cannot be negative");
       }
 
@@ -133,24 +133,59 @@ export const updateProduct = asyncHandler(async (req, res) => {
     }
   });
 
-  /* ---- Feature image replace ---- */
+  /* ---------- Feature image ---------- */
   if (req.files?.featureImage?.[0]) {
     if (product.featureImage) {
       const oldPath = path.join(process.cwd(), "public", product.featureImage);
       fs.existsSync(oldPath) && fs.unlinkSync(oldPath);
     }
+
     updateData.featureImage = `/products/${req.files.featureImage[0].filename}`;
   }
 
-  /* ---- Gallery images replace ---- */
-  if (req.files?.images?.length) {
-    product.images.forEach((img) => {
+  /* ---------- Gallery images  ---------- */
+  let updatedImages = [...product.images];
+  let imagesChanged = false;
+
+  /* ---- Remove selected images ---- */
+  if (req.body.removedImages) {
+    let removedImagesRaw = [];
+
+    try {
+      removedImagesRaw = Array.isArray(req.body.removedImages)
+        ? req.body.removedImages
+        : JSON.parse(req.body.removedImages);
+    } catch {
+      throw new ApiError(400, "Invalid removedImages format");
+    }
+
+    const removedImages = removedImagesRaw.map((img) =>
+      img.startsWith("http") ? new URL(img).pathname : img,
+    );
+
+    removedImages.forEach((img) => {
       const imgPath = path.join(process.cwd(), "public", img);
       fs.existsSync(imgPath) && fs.unlinkSync(imgPath);
     });
-    updateData.images = req.files.images.map((f) => `/products/${f.filename}`);
+
+    updatedImages = updatedImages.filter((img) => !removedImages.includes(img));
+
+    imagesChanged = true;
   }
 
+  /* ---- Append new images ---- */
+  if (req.files?.images?.length) {
+    const newImages = req.files.images.map((f) => `/products/${f.filename}`);
+    updatedImages.push(...newImages);
+    imagesChanged = true;
+  }
+
+  /* ---- Save images if changed ---- */
+  if (imagesChanged) {
+    updateData.images = updatedImages;
+  }
+
+  /* ---------- Prevent empty update ---------- */
   if (!Object.keys(updateData).length) {
     throw new ApiError(400, "No valid fields provided for update");
   }
