@@ -21,7 +21,7 @@ const categorySchema = Schema(
 
     type: {
       type: String,
-      enum: ["Health Supplements", "Health Pre Packs"],
+      enum: ["Health Supplements", "Health Pre Packs", "Vitamins"],
       required: true,
     },
   },
