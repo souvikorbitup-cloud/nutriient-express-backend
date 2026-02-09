@@ -1,6 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 
-const productSchema = Schema(
+const productSchema = new Schema(
   {
     category: {
       type: mongoose.Schema.Types.ObjectId,
@@ -18,9 +18,7 @@ const productSchema = Schema(
       required: true,
       trim: true,
     },
-    subGenericName: {
-      type: String,
-    },
+    subGenericName: String,
 
     mrp: {
       type: mongoose.Schema.Types.Decimal128,
@@ -68,9 +66,26 @@ const productSchema = Schema(
   { timestamps: true },
 );
 
-/* Auto stock status */
+/* CREATE / SAVE */
 productSchema.pre("save", function () {
   this.isOutOfStock = this.stock <= 0;
 });
+
+/* UPDATE */
+productSchema.pre(
+  ["findOneAndUpdate", "updateOne", "updateMany"],
+  function (next) {
+    const update = this.getUpdate();
+
+    const stock = update?.stock ?? update?.$set?.stock;
+
+    if (stock !== undefined) {
+      if (!update.$set) update.$set = {};
+      update.$set.isOutOfStock = stock <= 0;
+    }
+
+    next();
+  },
+);
 
 export const Product = mongoose.model("Product", productSchema);
