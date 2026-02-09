@@ -72,20 +72,15 @@ productSchema.pre("save", function () {
 });
 
 /* UPDATE */
-productSchema.pre(
-  ["findOneAndUpdate", "updateOne", "updateMany"],
-  function (next) {
-    const update = this.getUpdate();
+productSchema.pre(["findOneAndUpdate", "updateOne", "updateMany"], function () {
+  const update = this.getUpdate();
 
-    const stock = update?.stock ?? update?.$set?.stock;
+  const stock = update?.stock ?? update?.$set?.stock;
 
-    if (stock !== undefined) {
-      if (!update.$set) update.$set = {};
-      update.$set.isOutOfStock = stock <= 0;
-    }
-
-    next();
-  },
-);
+  if (stock !== undefined) {
+    if (!update.$set) update.$set = {};
+    update.$set.isOutOfStock = stock <= 0;
+  }
+});
 
 export const Product = mongoose.model("Product", productSchema);
