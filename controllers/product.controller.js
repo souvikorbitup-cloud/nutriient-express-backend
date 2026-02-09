@@ -227,20 +227,56 @@ export const deleteProduct = asyncHandler(async (req, res) => {
 });
 
 export const getAllProducts = asyncHandler(async (req, res) => {
+  //  Query params
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  //  Total count
+  const totalProducts = await Product.countDocuments();
+
+  //  Paginated products
   const products = await Product.find()
     .populate("category subCategory")
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  // Pagination meta
+  const pagination = {
+    total: totalProducts,
+    page,
+    limit,
+    totalPages: Math.ceil(totalProducts / limit),
+    hasNextPage: page * limit < totalProducts,
+    hasPrevPage: page > 1,
+  };
 
   const response = products.map((product) => {
     const data = product.toObject();
+
+    // Remove unwanted fields
+    delete data.shortDescription;
+    delete data.fullDescription;
+    delete data.descriptionForRecommendation;
+    delete data.images;
+
+    // Keep only needed transformed fields
     data.featureImage = makeAbsoluteUrl(data.featureImage);
-    data.images = data.images.map(makeAbsoluteUrl);
+
     return data;
   });
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, response, "Products fetched"));
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        products: response,
+        pagination,
+      },
+      "Products fetched",
+    ),
+  );
 });
 
 export const getProductById = asyncHandler(async (req, res) => {
@@ -287,8 +323,16 @@ export const getProductsByCategoryName = asyncHandler(async (req, res) => {
 
   const response = products.map((product) => {
     const data = product.toObject();
+
+    // Remove unwanted fields
+    delete data.shortDescription;
+    delete data.fullDescription;
+    delete data.descriptionForRecommendation;
+    delete data.images;
+
+    // Keep only needed transformed fields
     data.featureImage = makeAbsoluteUrl(data.featureImage);
-    data.images = data.images.map(makeAbsoluteUrl);
+
     return data;
   });
 
