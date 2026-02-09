@@ -10,6 +10,14 @@ import { Product } from "../models/product.model.js";
 import { Category } from "../models/category.model.js";
 import { Order } from "../models/order.model.js";
 
+/* ====================== COOKIE OPTIONS (SINGLE SOURCE OF TRUTH) ====================== */
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  path: "/", // 🔥 VERY IMPORTANT (must match on logout)
+};
+
 export const loginAdmin = asyncHandler(async (req, res) => {
   const { username, password } = req.body;
 
@@ -37,19 +45,14 @@ export const loginAdmin = asyncHandler(async (req, res) => {
   // Generate token
   const token = admin.generateAccessToken();
 
-  // Cookie options
-  const options = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-    maxAge: 30 * 24 * 60 * 60 * 1000,
-  };
-
   // Remove password from response
   admin.password = undefined;
 
   return res
-    .cookie("accessToken", token, options)
+    .cookie("accessToken", token, {
+      ...cookieOptions,
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    })
     .status(200)
     .json(
       new ApiResponse(
@@ -281,16 +284,17 @@ export const deleteManagerAccount = asyncHandler(async (req, res) => {
 }); // ✅
 
 export const logoutAdmin = asyncHandler(async (req, res) => {
-  // reset cookie
-  const options = {
-    httpOnly: true,
-    secure: true,
-  };
+  res.clearCookie("accessToken", cookieOptions);
+
+  // extra safety overwrite
+  res.cookie("accessToken", "", {
+    ...cookieOptions,
+    expires: new Date(0),
+  });
 
   return res
     .status(200)
-    .clearCookie("accessToken", options)
-    .json(new ApiResponse(200, {}, "admin logged out successfully"));
+    .json(new ApiResponse(200, {}, "Admin logged out successfully"));
 }); // ✅
 
 export const getAllUsers = asyncHandler(async (req, res) => {
