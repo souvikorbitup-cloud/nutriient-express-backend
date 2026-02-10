@@ -53,12 +53,15 @@ const QuizSessionSchema = new Schema(
   },
 );
 
-// 24-Hour Expiration Logic (Only deletes if NOT completed)
+// 24-Hour Expiration Logic
 QuizSessionSchema.index(
   { createdAt: 1 },
   {
-    expireAfterSeconds: 86400,
-    partialFilterExpression: { isCompleted: false },
+    expireAfterSeconds: 86400, // 24 hours
+    partialFilterExpression: {
+      isCompleted: false,
+      userId: null, // only anonymous sessions
+    },
   },
 );
 
