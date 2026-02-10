@@ -131,13 +131,12 @@ export const syncProgress = asyncHandler(async (req, res) => {
   return res.status(200).json(new ApiResponse(200, session, "Sync Success"));
 });
 
-export const getUserCompletedSession = asyncHandler(async (req, res) => {
+export const getUserSession = asyncHandler(async (req, res) => {
   const authenticatedUserId = getAuthenticatedUserId(req);
   if (!authenticatedUserId) throw new ApiError(200, "No authenticated user");
 
   const session = await QuizSession.findOne({
-    userId: authenticatedUserId,
-    isCompleted: true,
+    userId: authenticatedUserId
   }).sort({ updatedAt: -1 });
 
   return res
