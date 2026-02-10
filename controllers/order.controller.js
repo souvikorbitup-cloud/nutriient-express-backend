@@ -175,7 +175,7 @@ export const getMyOrders = asyncHandler(async (req, res) => {
     .populate({
       path: "orderDetails.product",
       select:
-        "genericName subGenericName mrp sellPrice coursDuration stock isOutOfStock featureImage",
+        "genericName subGenericName coursDuration featureImage",
     })
     .sort({ createdAt: -1 });
 
@@ -248,7 +248,11 @@ export const getOrderById = asyncHandler(async (req, res) => {
 export const getAllOrders = asyncHandler(async (req, res) => {
   const orderDocs = await Order.find()
     .populate("user")
-    .populate("orderDetails.product")
+    .populate({
+      path: "orderDetails.product",
+      select:
+        "genericName subGenericName coursDuration featureImage",
+    })
     .sort({ createdAt: -1 });
 
   const orders = orderDocs.map((orderDoc) => {
@@ -257,10 +261,6 @@ export const getAllOrders = asyncHandler(async (req, res) => {
     order.orderDetails = order.orderDetails.map((item) => {
       if (item.product) {
         item.product.featureImage = makeAbsoluteUrl(item.product.featureImage);
-
-        if (Array.isArray(item.product.images)) {
-          item.product.images = item.product.images.map(makeAbsoluteUrl);
-        }
       }
       return item;
     });
