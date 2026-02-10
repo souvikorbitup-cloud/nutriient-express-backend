@@ -172,19 +172,19 @@ export const createOrder = asyncHandler(async (req, res) => {
 ========================= */
 export const getMyOrders = asyncHandler(async (req, res) => {
   const orderDocs = await Order.find({ user: req.user._id })
-    .populate("orderDetails.product")
+    .populate({
+      path: "orderDetails.product",
+      select:
+        "genericName subGenericName mrp sellPrice coursDuration stock isOutOfStock featureImage",
+    })
     .sort({ createdAt: -1 });
 
   const orders = orderDocs.map((orderDoc) => {
     const order = orderDoc.toObject();
 
     order.orderDetails = order.orderDetails.map((item) => {
-      if (item.product) {
+      if (item.product?.featureImage) {
         item.product.featureImage = makeAbsoluteUrl(item.product.featureImage);
-
-        if (Array.isArray(item.product.images)) {
-          item.product.images = item.product.images.map(makeAbsoluteUrl);
-        }
       }
       return item;
     });
@@ -206,16 +206,26 @@ export const getOrderById = asyncHandler(async (req, res) => {
   const orderDoc = await Order.findOne({
     _id: orderId,
     user: req.user._id,
-  }).populate("orderDetails.product");
+  }).populate({
+    path: "orderDetails.product",
+    select: `
+      -shortDescription
+      -fullDescription
+      -descriptionForRecommendation
+      -mrp
+      -sellPrice
+      -stock
+      -isOutOfStock
+    `,
+  });
 
   if (!orderDoc) {
     throw new ApiError(404, "Order not found");
   }
 
-  // Convert to plain object
   const order = orderDoc.toObject();
 
-  // Normalize product image URLs
+  /* -------- Normalize product images -------- */
   order.orderDetails = order.orderDetails.map((item) => {
     if (item.product) {
       item.product.featureImage = makeAbsoluteUrl(item.product.featureImage);
