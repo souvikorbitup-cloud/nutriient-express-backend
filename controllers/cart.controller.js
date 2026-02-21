@@ -146,17 +146,28 @@ export const syncCart = asyncHandler(async (req, res) => {
     const product = await Product.findById(item.productId);
     if (!product || product.isOutOfStock) continue;
 
+    const requestedQty = Number(item.quantity) || 0;
+
     const existing = cart.items.find(
       (i) => i.product.toString() === item.productId,
     );
 
     if (existing) {
-      existing.quantity += item.quantity;
+      //  total quantity after merge
+      const totalQty = existing.quantity + requestedQty;
+
+      //  clamp to stock
+      existing.quantity = Math.min(totalQty, product.stock);
     } else {
-      cart.items.push({
-        product: item.productId,
-        quantity: item.quantity,
-      });
+      //  clamp to stock
+      const finalQty = Math.min(requestedQty, product.stock);
+
+      if (finalQty > 0) {
+        cart.items.push({
+          product: item.productId,
+          quantity: finalQty,
+        });
+      }
     }
   }
 

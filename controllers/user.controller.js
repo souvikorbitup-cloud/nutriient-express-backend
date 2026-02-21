@@ -84,7 +84,7 @@ export const loginUser = asyncHandler(async (req, res) => {
   }
 
   const user = await User.findOne({ mobile });
-  if (!user) throw new ApiError(400, "User not found");
+  if (!user) throw new ApiError(404, "User not found");
 
   // send cookie (allow cross-site cookies in production)
   const options = {
