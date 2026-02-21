@@ -174,8 +174,7 @@ export const getMyOrders = asyncHandler(async (req, res) => {
   const orderDocs = await Order.find({ user: req.user._id })
     .populate({
       path: "orderDetails.product",
-      select:
-        "genericName subGenericName coursDuration featureImage",
+      select: "genericName subGenericName coursDuration featureImage",
     })
     .sort({ createdAt: -1 });
 
@@ -246,14 +245,33 @@ export const getOrderById = asyncHandler(async (req, res) => {
    ADMIN: GET ALL ORDERS
 ========================= */
 export const getAllOrders = asyncHandler(async (req, res) => {
+  //  Query params
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  //  Total Orders
+  const totalOrders = await Order.countDocuments();
+
   const orderDocs = await Order.find()
     .populate("user")
     .populate({
       path: "orderDetails.product",
-      select:
-        "genericName subGenericName coursDuration featureImage",
+      select: "genericName subGenericName coursDuration featureImage",
     })
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  // Pagination meta
+  const pagination = {
+    total: totalOrders,
+    page,
+    limit,
+    totalPages: Math.ceil(totalOrders / limit),
+    hasNextPage: page * limit < totalOrders,
+    hasPrevPage: page > 1,
+  };
 
   const orders = orderDocs.map((orderDoc) => {
     const order = orderDoc.toObject();
@@ -270,7 +288,10 @@ export const getAllOrders = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(new ApiResponse(200, orders, "All orders fetched"));
+    .json(new ApiResponse(200, {
+      orders,
+      pagination,
+    }, "All orders fetched"));
 });
 
 /* =========================
