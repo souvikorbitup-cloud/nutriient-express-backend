@@ -172,7 +172,7 @@ export const updateAccountDetails = asyncHandler(async (req, res) => {
     updateData.weight = weight;
   }
 
-  if (bodyType !== undefined) {
+  if (!(bodyType === undefined || bodyType === "")) {
     updateData.bodyType = bodyType;
   }
 
