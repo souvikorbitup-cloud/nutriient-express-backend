@@ -50,7 +50,9 @@ export const getSession = asyncHandler(async (req, res) => {
 
   // If user is authenticated, associate session with user else null
   const authenticatedUserId = getAuthenticatedUserId(req);
-  session.userId = authenticatedUserId || null;
+  if (authenticatedUserId && !session.userId) {
+    session.userId = authenticatedUserId;
+  }
 
   await session.save();
 
@@ -105,7 +107,9 @@ export const syncProgress = asyncHandler(async (req, res) => {
 
   // If user is authenticated, associate session with user else null
   const authenticatedUserId = getAuthenticatedUserId(req);
-  session.userId = authenticatedUserId || null;
+  if (authenticatedUserId && !session.userId) {
+    session.userId = authenticatedUserId;
+  }
 
   if (SECTION_RANK[section] < SECTION_RANK[session.currentSection]) {
     throw new ApiError(403, "Cannot return to previous section");
@@ -133,15 +137,17 @@ export const syncProgress = asyncHandler(async (req, res) => {
 
 export const getUserSession = asyncHandler(async (req, res) => {
   const authenticatedUserId = getAuthenticatedUserId(req);
-  if (!authenticatedUserId) throw new ApiError(200, "No authenticated user");
+  if (!authenticatedUserId) {
+    throw new ApiError(401, "No authenticated user");
+  }
 
-  const session = await QuizSession.findOne({
-    userId: authenticatedUserId
-  }).sort({ updatedAt: -1 });
+  const session = await QuizSession.find({ userId: authenticatedUserId })
+    .sort({ updatedAt: -1 })
+    .limit(1);
 
   return res
     .status(200)
-    .json(new ApiResponse(200, session || null, "User completed session"));
+    .json(new ApiResponse(200, session[0] || null, "User completed session"));
 });
 
 export const deleteSessionById = asyncHandler(async (req, res) => {
@@ -338,14 +344,14 @@ export const getReportById = asyncHandler(async (req, res) => {
         low: roundedMaintenance - 600,
         high: roundedMaintenance - 500,
         unit: "kcal/day",
-        text: "Your Ideal Fat Loss Target:"
+        text: "Your Ideal Fat Loss Target:",
       };
     } else {
       idealTarget = {
         low: roundedMaintenance - 100,
         high: roundedMaintenance,
         unit: "kcal/day",
-        text: "Your Ideal Diet Target:"
+        text: "Your Ideal Diet Target:",
       };
     }
   }
