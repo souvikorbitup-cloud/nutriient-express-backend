@@ -416,3 +416,130 @@ export const getReportById = asyncHandler(async (req, res) => {
 
   return res.status(200).json(new ApiResponse(200, report, "User Report"));
 });
+
+export const getAllQuizReports = asyncHandler(async (req, res) => {
+  //  Query params
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const filter = {
+    $or: [{ currentSection: { $ne: "BASIC" } }, { userId: { $ne: null } }],
+  };
+
+  const [sessions, total] = await Promise.all([
+    QuizSession.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    QuizSession.countDocuments(filter),
+  ]);
+
+  // Pagination meta
+  const pagination = {
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+    hasNextPage: page * limit < total,
+    hasPrevPage: page > 1,
+  };
+
+  const reports = [];
+
+  for (const session of sessions) {
+    const responses = session.responses || {};
+    const questionIds = Object.keys(responses);
+
+    // Fetch user if exists
+    let user = null;
+    if (session.userId) {
+      user = await User.findById(session.userId).lean();
+    }
+
+    // Fetch related questions
+    const questions = await Question.find({
+      _id: { $in: questionIds },
+      section: { $in: ["GOALS", "LIFESTYLE"] },
+    }).lean();
+
+    const questionMap = {};
+    questions.forEach((q) => {
+      questionMap[q._id.toString()] = q;
+    });
+
+    const goalsQA = [];
+    const lifestyleQA = [];
+
+    for (const qId of questionIds) {
+      const question = questionMap[qId];
+      if (!question) continue; // skip BASIC or missing
+
+      const resp = responses[qId];
+      let selectedOptions = [];
+
+      // MULTI
+      if (resp && Array.isArray(resp.value)) {
+        selectedOptions = resp.value;
+      }
+      // SINGLE (stored as object)
+      else if (resp && resp._id) {
+        selectedOptions = [resp];
+      }
+      // Stored inside value
+      else if (resp && resp.value && resp.value._id) {
+        selectedOptions = [resp.value];
+      }
+
+      const formatted = {
+        questionId: question._id,
+        questionText: question.questionText,
+        answers: selectedOptions.map((opt) => ({
+          label: opt.label || null,
+          value: opt.value || null,
+        })),
+      };
+
+      if (question.section === "GOALS") {
+        goalsQA.push(formatted);
+      } else if (question.section === "LIFESTYLE") {
+        lifestyleQA.push(formatted);
+      }
+    }
+    if (user) {
+      reports.push({
+        sessionId: session.sessionId,
+        startDate: session.createdAt,
+        currentStep: session.currentStep,
+        currentSection: session.currentSection,
+        selectedGoal: session.selectedGoal,
+        isCompleted: session.isCompleted,
+
+        userInfo: {
+          fullName: user.fullName,
+          mobile: user.mobile,
+          email: user.email,
+          age: user.age,
+          gender: user.gender,
+          weight: user.weight,
+          bodyType: user.bodyType,
+        },
+
+        goals: goalsQA,
+        lifestyle: lifestyleQA,
+      });
+    }
+  }
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        pagination,
+        reports,
+      },
+      "All Quiz Reports Fetched",
+    ),
+  );
+});
