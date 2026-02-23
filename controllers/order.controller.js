@@ -340,8 +340,8 @@ export const updateOrderByAdmin = asyncHandler(async (req, res) => {
       throw new ApiError(404, "Order not found");
     }
 
-    if (order.deliveryState === "DELIVERED") {
-      throw new ApiError(400, "Delivered orders cannot be modified");
+    if (order.deliveryState !== "PENDING") {
+      throw new ApiError(400, "Only PENDING can be modified");
     }
 
     /* =========================
