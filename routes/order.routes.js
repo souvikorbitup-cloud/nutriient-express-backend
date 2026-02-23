@@ -5,6 +5,7 @@ import {
   getMyOrders,
   getOrderById,
   updateDeliveryState,
+  updateOrderByAdmin,
 } from "../controllers/order.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import authorizeRole from "../middlewares/role.middleware.js";
@@ -23,5 +24,7 @@ router.use(authorizeRole("admin", "manager"));
 
 router.get("/", getAllOrders);
 router.put("/:orderId/delivery-state", updateDeliveryState);
+router.put("/:orderId", updateOrderByAdmin);
+
 
 export default router;

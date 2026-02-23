@@ -286,12 +286,16 @@ export const getAllOrders = asyncHandler(async (req, res) => {
     return order;
   });
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, {
-      orders,
-      pagination,
-    }, "All orders fetched"));
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        orders,
+        pagination,
+      },
+      "All orders fetched",
+    ),
+  );
 });
 
 /* =========================
@@ -317,4 +321,135 @@ export const updateDeliveryState = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json(new ApiResponse(200, order, "Order status updated"));
+});
+
+/* =========================
+   ADMIN: UPDATE ORDER (FULL EDIT)
+========================= */
+export const updateOrderByAdmin = asyncHandler(async (req, res) => {
+  const { orderId } = req.params;
+  const { shippingAddress, orderDetails } = req.body;
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const order = await Order.findById(orderId).session(session);
+
+    if (!order) {
+      throw new ApiError(404, "Order not found");
+    }
+
+    if (order.deliveryState === "DELIVERED") {
+      throw new ApiError(400, "Delivered orders cannot be modified");
+    }
+
+    /* =========================
+       Update Shipping Address
+    ========================= */
+    if (shippingAddress) {
+      order.shippingAddress = {
+        ...order.shippingAddress,
+        ...shippingAddress,
+      };
+    }
+
+    /* =========================
+       Update Order Products
+    ========================= */
+    if (orderDetails && Array.isArray(orderDetails)) {
+      // Map existing items for easier comparison
+      const existingItemsMap = new Map();
+
+      order.orderDetails.forEach((item) => {
+        existingItemsMap.set(item.product.toString(), item);
+      });
+
+      const updatedOrderDetails = [];
+
+      for (const incomingItem of orderDetails) {
+        const product = await Product.findById(incomingItem.product).session(
+          session,
+        );
+
+        if (!product) {
+          throw new ApiError(404, "Product not found");
+        }
+
+        const existingItem = existingItemsMap.get(incomingItem.product);
+
+        /* -------- Existing product (modify quantity) -------- */
+        if (existingItem) {
+          const quantityDiff = incomingItem.quantity - existingItem.quantity;
+
+          // If increasing quantity
+          if (quantityDiff > 0) {
+            if (product.stock < quantityDiff) {
+              throw new ApiError(
+                400,
+                `Not enough stock for ${product.genericName}`,
+              );
+            }
+            product.stock -= quantityDiff;
+          }
+
+          // If decreasing quantity
+          if (quantityDiff < 0) {
+            product.stock += Math.abs(quantityDiff);
+          }
+
+          await product.save({ session });
+
+          updatedOrderDetails.push({
+            product: product._id,
+            quantity: incomingItem.quantity,
+            price: product.sellPrice,
+          });
+
+          existingItemsMap.delete(incomingItem.product);
+        } else {
+          /* -------- New product added -------- */
+          if (product.stock < incomingItem.quantity) {
+            throw new ApiError(
+              400,
+              `Not enough stock for ${product.genericName}`,
+            );
+          }
+
+          product.stock -= incomingItem.quantity;
+          await product.save({ session });
+
+          updatedOrderDetails.push({
+            product: product._id,
+            quantity: incomingItem.quantity,
+            price: product.sellPrice,
+          });
+        }
+      }
+
+      /* -------- Removed Products -------- */
+      for (const [productId, item] of existingItemsMap.entries()) {
+        const product = await Product.findById(productId).session(session);
+        if (product) {
+          product.stock += item.quantity;
+          await product.save({ session });
+        }
+      }
+
+      order.orderDetails = updatedOrderDetails;
+    }
+
+    await order.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, order, "Order updated successfully"));
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
 });

@@ -3,6 +3,7 @@ import {
   createProduct,
   deleteProduct,
   getAllProducts,
+  getAllProductsName,
   getProductById,
   getProductsByCategoryName,
   updateProduct,
@@ -15,6 +16,7 @@ const router = Router();
 
 /* Public */
 router.get("/", getAllProducts);
+router.get("/all", getAllProductsName);
 router.get("/category/:categoryName", getProductsByCategoryName);
 router.get("/:productId", getProductById);
 

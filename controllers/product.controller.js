@@ -226,6 +226,23 @@ export const deleteProduct = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, null, "Product deleted successfully"));
 });
 
+export const getAllProductsName = asyncHandler(async (req, res) => {
+  //  Paginated products
+  const products = await Product.find({isOutOfStock: false})
+    .select("genericName subGenericName sellPrice stock featureImage")
+    .sort({ createdAt: -1 });
+
+  const response = products.map((product) => {
+    const data = product.toObject();
+    data.featureImage = makeAbsoluteUrl(data.featureImage);
+    return data;
+  });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, response, "All Products fetched"));
+});
+
 export const getAllProducts = asyncHandler(async (req, res) => {
   //  Query params
   const page = parseInt(req.query.page) || 1;
