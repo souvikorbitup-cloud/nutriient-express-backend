@@ -31,7 +31,7 @@ import cartRouter from "./routes/cart.routes.js";
 import orderRouter from "./routes/order.routes.js";
 import quizRouter from "./routes/quiz.routes.js";
 import chartRouter from "./routes/chart.routes.js";
-
+import pricingPlanRoutes from "./routes/pricingPlan.routes.js";
 import contactRouter from "./routes/contact.routes.js";
 
 // routes declaration
@@ -43,7 +43,7 @@ app.use("/api/cart", cartRouter);
 app.use("/api/order", orderRouter);
 app.use("/api/quiz", quizRouter);
 app.use("/api/chart", chartRouter);
-
+app.use("/api/pricing-plans", pricingPlanRoutes);
 app.use("/api/contact", contactRouter);
 
 // http://localhost:4000/api/users/register
