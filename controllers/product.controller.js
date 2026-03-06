@@ -227,8 +227,16 @@ export const deleteProduct = asyncHandler(async (req, res) => {
 });
 
 export const getAllProductsName = asyncHandler(async (req, res) => {
-  //  Paginated products
-  const products = await Product.find({ isOutOfStock: false })
+  const { recommended } = req.query;
+
+  // Base filter
+  const filter = { isOutOfStock: false };
+
+  // If recommended=true then filter recommended products
+  if (recommended === "true") {
+    filter.isRecommendation = true;
+  }
+  const products = await Product.find(filter)
     .select("genericName subGenericName sellPrice stock featureImage")
     .sort({ createdAt: -1 });
 
@@ -479,18 +487,14 @@ export const getProductsByGoal = asyncHandler(async (req, res) => {
 
   // If none found → get random 2 from "Letter Vitamins"
   if (products.length === 0) {
-    const category = await Category.findOne({ name: "Letter Vitamins" });
-
-    if (category) {
-      products = await Product.aggregate([
-        {
-          $match: {
-            category: category._id,
-          },
+    products = await Product.aggregate([
+      {
+        $match: {
+          isRecommendation: true,
         },
-        { $sample: { size: maxCount } },
-      ]);
-    }
+      },
+      { $sample: { size: maxCount } },
+    ]);
   }
 
   // Format products
