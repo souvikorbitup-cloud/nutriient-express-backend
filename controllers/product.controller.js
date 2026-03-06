@@ -450,3 +450,69 @@ export const getProductsGroupedByGoal = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, grouped, "Goal products fetched"));
 });
+
+export const getProductsByGoal = asyncHandler(async (req, res) => {
+  const { goal } = req.params;
+
+  const allowedGoals = [
+    "Gut Health",
+    "PCOS",
+    "Fat Loss",
+    "Diabetes / Metabolic Health",
+  ];
+
+  const maxCount = 2;
+
+  if (!allowedGoals.includes(goal)) {
+    throw new ApiError(400, "Invalid goal");
+  }
+
+  // Find recommended products by goal (max 2)
+  let products = await Product.aggregate([
+    {
+      $match: {
+        goals: goal,
+      },
+    },
+    { $sample: { size: maxCount } },
+  ]);
+
+  // If none found → get random 2 from "Letter Vitamins"
+  if (products.length === 0) {
+    const category = await Category.findOne({ name: "Letter Vitamins" });
+
+    if (category) {
+      products = await Product.aggregate([
+        {
+          $match: {
+            category: category._id,
+          },
+        },
+        { $sample: { size: maxCount } },
+      ]);
+    }
+  }
+
+  // Format products
+  const formattedProducts = products.map((product) => {
+    const data = { ...product };
+    delete data.fullDescription;
+    delete data.descriptionForRecommendation;
+    delete data.images;
+
+    data.featureImage = makeAbsoluteUrl(data.featureImage);
+
+    return data;
+  });
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        goal,
+        products: formattedProducts,
+      },
+      "Goal products fetched successfully",
+    ),
+  );
+});

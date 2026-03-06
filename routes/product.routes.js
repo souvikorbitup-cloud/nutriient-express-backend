@@ -6,6 +6,7 @@ import {
   getAllProductsName,
   getProductById,
   getProductsByCategoryName,
+  getProductsByGoal,
   getProductsGroupedByGoal,
   updateProduct,
   updateProductGoal,
@@ -21,6 +22,7 @@ router.get("/", getAllProducts);
 router.get("/all", getAllProductsName);
 router.get("/category/:categoryName", getProductsByCategoryName);
 router.get("/:productId", getProductById);
+router.get("/recommendation/:goal", getProductsByGoal);
 
 /* Admin / Manager */
 router.post(
