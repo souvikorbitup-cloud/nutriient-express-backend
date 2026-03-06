@@ -228,7 +228,7 @@ export const deleteProduct = asyncHandler(async (req, res) => {
 
 export const getAllProductsName = asyncHandler(async (req, res) => {
   //  Paginated products
-  const products = await Product.find({isOutOfStock: false})
+  const products = await Product.find({ isOutOfStock: false })
     .select("genericName subGenericName sellPrice stock featureImage")
     .sort({ createdAt: -1 });
 
@@ -362,4 +362,91 @@ export const getProductsByCategoryName = asyncHandler(async (req, res) => {
         `Products fetched for category: ${categoryName}`,
       ),
     );
+});
+
+export const updateProductGoal = asyncHandler(async (req, res) => {
+  const { productId } = req.params;
+  const { goal, action } = req.body;
+
+  const allowedGoals = [
+    "Gut Health",
+    "PCOS",
+    "Fat Loss",
+    "Diabetes / Metabolic Health",
+  ];
+
+  if (!goal || !allowedGoals.includes(goal)) {
+    throw new ApiError(400, "Invalid goal");
+  }
+
+  if (!["add", "remove"].includes(action)) {
+    throw new ApiError(400, "Action must be 'add' or 'remove'");
+  }
+
+  const product = await Product.findById(productId);
+
+  if (!product) {
+    throw new ApiError(404, "Product not found");
+  }
+
+  if (action === "add") {
+    if (!product.goals.includes(goal)) {
+      product.goals.push(goal);
+    }
+  }
+
+  if (action === "remove") {
+    product.goals = product.goals.filter((g) => g !== goal);
+  }
+
+  await product.save();
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        productId: product._id,
+        goals: product.goals,
+      },
+      `Product ${action === "add" ? "added to" : "removed from"} ${goal}`,
+    ),
+  );
+});
+
+export const getProductsGroupedByGoal = asyncHandler(async (req, res) => {
+  const goals = [
+    "Gut Health",
+    "PCOS",
+    "Fat Loss",
+    "Diabetes / Metabolic Health",
+  ];
+
+  const products = await Product.find({
+    goals: { $exists: true, $ne: [] },
+  })
+    .select(
+      "genericName subGenericName sellPrice featureImage goals stock isOutOfStock",
+    )
+    .lean();
+
+  const grouped = {};
+
+  // initialize empty goals
+  goals.forEach((goal) => {
+    grouped[goal] = [];
+  });
+
+  products.forEach((product) => {
+    product.featureImage = makeAbsoluteUrl(product.featureImage);
+
+    product.goals.forEach((goal) => {
+      if (grouped[goal]) {
+        grouped[goal].push(product);
+      }
+    });
+  });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, grouped, "Goal products fetched"));
 });

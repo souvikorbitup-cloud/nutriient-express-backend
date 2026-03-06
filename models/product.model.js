@@ -52,6 +52,12 @@ const productSchema = new Schema(
       default: false,
     },
 
+    goals: {
+      type: [String],
+      enum: ["Gut Health", "PCOS", "Fat Loss", "Diabetes / Metabolic Health"],
+      default: [],
+    },
+
     shortDescription: String,
     fullDescription: String,
     descriptionForRecommendation: String,

@@ -6,7 +6,9 @@ import {
   getAllProductsName,
   getProductById,
   getProductsByCategoryName,
+  getProductsGroupedByGoal,
   updateProduct,
+  updateProductGoal,
 } from "../controllers/product.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import authorizeRole from "../middlewares/role.middleware.js";
@@ -48,6 +50,20 @@ router.delete(
   verifyJWT,
   authorizeRole("admin", "manager"),
   deleteProduct,
+);
+
+router.patch(
+  "/:productId/goal",
+  verifyJWT,
+  authorizeRole("admin", "manager"),
+  updateProductGoal,
+);
+
+router.get(
+  "/goals/recommendations",
+  verifyJWT,
+  authorizeRole("admin", "manager"),
+  getProductsGroupedByGoal,
 );
 
 export default router;
